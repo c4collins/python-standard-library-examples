@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import re
 
 pattern = 'this'
@@ -292,6 +293,7 @@ for match in with_case.findall(text):
 print "Case-insensitive:"
 for match in without_case.findall(text):
     print ' %r' % match
+print
 
  # re.MULTILINE makes the '^' and '$' anchors apply to each line, as well as the entire input
 text = "This is some text -- with punctuation.\nAnd a second line!"
@@ -308,3 +310,390 @@ for match in single_line.findall(text):
 print "Multiline   :"
 for match in multiline.findall(text):
         print " %r" % (match,)
+print
+
+ # usually the period (.) matches everythign but newlines, re.DOTALL makes it also match newlines.
+pattern = r'.+'
+no_newlines = re.compile(pattern)
+dotall = re.compile(pattern, re.DOTALL)
+
+print "Text:\n %r" % text
+print "Pattern:\n %s" % pattern
+print "Single Line :"
+for match in no_newlines.findall(text):
+        print " %r" % (match,)
+print "Multiline   :"
+for match in dotall.findall(text):
+        print " %r" % (match,)
+print
+
+ # re expects ASCII input and output, but you can make it expect Unicode with re.UNICODE
+ # in Python 2, anyway.  Python 3 defaults ot Unicode, so, you know.
+
+import codecs
+import sys
+
+   # Set stdout encoding to UTF-8. This broke IDLE's shell for me, but it works without it
+   # sys.stdout = codecs.getwriter('UTF-8')(sys.stdout)
+
+u_text = u'Français złoty Österreich'
+pattern = ur'\w+'
+ascii_pattern = re.compile(pattern)
+unicode_pattern = re.compile(pattern, re.UNICODE)
+
+print 'Text    :', text
+print 'Pattern :', pattern
+print 'ASCII   :', u', '.join(ascii_pattern.findall(u_text))
+print 'Unicode :', u', '.join(unicode_pattern.findall(u_text))
+print
+
+ # Verbose Expression Syntax allows for whitespace and comments in what would otherwise quickly
+ # become untenable statments to understand or manage (via re.VERBOSE)
+
+terse_address = re.compile('[\w\d.+-]+@([\w\d.]+\.)+(com|org|edu)', re.UNICODE)
+verbose_address = re.compile(
+        '''
+        [\w\d.+-]+      # username
+        @
+        ([\w\d.]+\.)+   # domain name prefix
+        (com|org|edu)   # TODO: support more TLDs
+        ''',
+        re.UNICODE | re.VERBOSE )
+expanded_address = re.compile(
+        '''
+        # A name is made up of letters, and may include "."
+        # for title abbreviations and middle initials.
+        ((?P<name>
+                ([\w.,]+\s+)*[\w.,]+)
+                \s*
+                # email addresses are wrapped in angle brackets: < >
+                # but only if a name is found, so keep the start bracket in this group
+                <
+        )? # the entire name is optional
+
+        # The address itself: username@domain.tld
+        (?P<email>
+                [\w\d.+-]+      # username
+                @
+                ([\w\d.]+\.)+   # domain name prefix
+                (com|edu|org)   # limit the allowed TLDs
+        )
+        >?      # optional closing bracket
+        ''',
+        re.UNICODE | re.VERBOSE )
+
+candidates_short = [
+        u'first.last@example.com',
+        u'first.last+category@gmail.com',
+        u'valid-address@mail.example.com',
+        u'not-valid@example.foo',
+        ]
+candidates_long = [
+        u'first.last@example.com',
+        u'first.last+category@gmail.com',
+        u'valid-address@mail.example.com',
+        u'not-valid@example.foo',
+        u'First Last <first.last@example.com>',
+        u'No Brackets first.last@example.com',
+        u'First Last',
+        u'First Middle Last <first.last@example.com>',
+        u'First M. Last <first.last@example.com>',
+        u'<first.last@example.com',
+        ]
+
+def email_validation(address, candidates):
+        for candidate in candidates:
+                match = address.search(candidate)
+                print
+                print 'Candidate: %s' % candidate
+                print ' Results : %s' % ('Matches' if match else 'No match')
+                if match:
+                        print ' Name :',  'Unknown' if not match.groupdict() else match.groupdict()['name']
+                        print ' Email:', 'Unknown' if not match.groupdict() else match.groupdict()['email']
+        print
+
+email_validation(terse_address, candidates_short)
+email_validation(verbose_address, candidates_short)
+email_validation(expanded_address, candidates_long)
+
+ # Instead of adding flags when compiling an expression, flags can be embedded into the expression string itself
+ # by prepending the string with one or more of the following tags in the format of (?i) or (?imu)
+ 
+ # Flag         Abbreviation
+ # IGNORECASE   i
+ # MULTILINE    m
+ # DOTALL       s
+ # UNICODE      u
+ # VERBOSE      x
+
+text = "This is some text -- with punctuation."
+pattern = r'(?i)\bT\w+'
+regex = re.compile(pattern)
+print 'Text    :', text
+print 'Pattern :', pattern
+print 'Matches :', regex.findall(text)
+
+ # (?=pattern) for lookahead patterns, and (?!pattern) for negative lookahead patterns
+
+lookahead_address = re.compile(
+        '''
+        # A name is made up of letters, and may include "."
+        # for title abbreviations and middle initials.
+
+        ((?P<name>
+                ([\w.,]+\s+)*[\w.,]+
+                )
+                \s+
+        ) # the name is not optional
+        
+        # Email addresses are wrapped in angle brackets, but only if they are bot present or neither is.
+        (?=
+                (<.*>$) | ([^<].*[^>]$)
+              # wrapped |  not wrapped  in angle brackets
+        ) # LOOKAHEAD
+        <? # optional opening angle bracket
+        # The address itself: username@domain.tld
+        (?P<email>
+                (?!noreply@.*$) # Ignore noreply addresses # NEGATIVE LOOKAHEAD
+                [\w\d.+-]+      # username
+                @
+                ([\w\d.]+\.)+   # domain name prefix
+                (com|edu|org)   # limit the allowed TLDs
+        )
+        >?      # optional closing bracket
+        ''',
+        re.UNICODE | re.VERBOSE)
+
+candidates_lookahead = [
+        u'First Last <first.last@example.com>',
+        u'No Brackets first.last@example.com',
+        u'No Reply noreply@example.com',
+        u'Open Bracket <first.last@example.com',
+        u'Close Bracket first.last@example.com>',
+        ]
+
+email_validation(lookahead_address, candidates_lookahead)
+
+ # You can also do positive look-behinds with (?<=pattern)
+
+twitter = re.compile(
+         '''
+        # a Twitter handle: @username
+        (?<=@)
+        ([\w\d_]+)      # username
+        ''',
+         re.UNICODE | re.VERBOSE)
+
+text = 'This text contains two Twitter handles.  One for @ThePSF, and one for the authore, @doughellmann.'
+
+print text
+for match in twitter.findall(text):
+        print 'Handle:', match
+print
+
+
+## Self Referencing Expressions
+ # They can be done with numbers, where \1 refers to the first group in the expression
+ # and then can be referenced from a Match object (named match) with match.group(1)
+
+
+self_number_address = re.compile(
+        r'''
+        # The regular name
+        (\w+)           # first name
+        \s+
+        (([\w.]+)\s+)?  # optional middle name or initial
+        (\w+)           # last name
+
+        \s+
+
+        <
+        # the address : first_name.last_name@domain.tld
+        (?P<email>
+                \1              # first name
+                \.
+                \4              # last name
+                @
+                ([\w\d.]+\.)+   # domain name prefix
+                (com|org|edu)   # limit matching TLDs
+        )
+
+        >
+        ''',
+        re.UNICODE | re.VERBOSE | re.IGNORECASE )
+
+candidates_self_reference = [
+        u'First Last <first.last@example.com>',
+        u'Different Name <first.last@example.com>',
+        u'First Middle Last <first.last@example.com>',
+        u'First M. Last <first.last@example.com>',
+        u'no.brackets@example.org',
+        ]
+
+for candidate in candidates_self_reference:
+        print 'Candidate:', candidate
+        match = self_number_address.search(candidate)
+        if match:
+                print ' Match name :', match.group(1), match.group(4)
+                print ' Match email:', match.group(5)
+        else:
+                print ' No match!'
+        print
+print
+
+ # However, the referencing can also be done with names, which is a lot nicer looking, and is easier to manage
+
+self_named_address = re.compile(
+        r'''
+        # The regular name
+        (?P<first_name>\w+)           # first name
+        \s+
+        (([\w.]+)\s+)?  # optional middle name or initial
+        (?P<last_name>\w+)           # last name
+
+        \s+
+
+        <
+        # the address : first_name.last_name@domain.tld
+        (?P<email>
+                (?P=first_name)        # first name
+                \.
+                (?P=last_name)         # last name
+                @
+                ([\w\d.]+\.)+           # domain name prefix
+                (com|org|edu)           # limit matching TLDs
+        )
+
+        >
+        ''',
+        re.UNICODE | re.VERBOSE | re.IGNORECASE )
+
+for candidate in candidates_self_reference:
+        print 'Candidate:', candidate
+        match = self_named_address.search(candidate)
+        if match:
+                print ' Match name :', match.groupdict()['first_name'], match.groupdict()['last_name']
+                print ' Match email:', match.groupdict()['email']
+        else:
+                print ' No match!'
+        print
+print
+
+ # it's even possible to change the pattern based on whether a previous group matched or not
+ 
+self_checked_address = re.compile(
+        r'''
+        ^
+        # A name is made up of letters, spaces, and may include '.' for titles, abbreviations, and initials
+        (?P<name>
+                ([\w.*]+\s*)+
+        )?
+
+        # email addresses are wrapped in brackets, but only if a name is found
+        (?(name)
+                # remainder wrapped in angle brackets because there is a name
+                (?P<brackets>(?=(<.*>$)))
+                |
+                # remainder does not include angle brackets without name
+                (?=([^<].*[^>]$))
+        )
+
+        # only look for a bracket if the lookahead assertion found them both
+        (?(brackets)<|\s*)
+        
+        # the address : first_name.last_name@domain.tld
+        (?P<email>
+                [\w\d.+-]+              # username
+                @
+                ([\w\d.]+\.)+           # domain name prefix
+                (com|org|edu)           # limit matching TLDs
+        )
+
+        # only look for a bracket if the lookahead assertion found them both
+        (?(brackets)>|\s*)
+        
+        $
+        ''',
+        re.UNICODE | re.VERBOSE )
+
+candidates_checked = [
+        u"First Last <first.last@example.com>",
+        u"No Brackets first.last@example.com",
+        u"Open Bracket <first.last@example.com",
+        u"Close Bracket first.last@example.com>",
+        u"no.bracket@example.com",
+        ]
+
+for candidate in candidates_checked:
+        print 'Candidate:', candidate
+        match = self_checked_address.search(candidate)
+        if match:
+                print ' Match name :', match.groupdict()['name']
+                print ' Match email:', match.groupdict()['email']
+        else:
+                print ' No match!'
+        
+        print
+print
+
+
+## Modifying Strings with Patterns
+ # Use sub(sub_text, text) to replace all occurences of a pattern with another string
+ # The simplest way to do it is by using numbered groups
+
+bold = re.compile(r'\*{2}(.*?)\*{2}')
+text = 'Make this **bold**. This **too**.'
+
+print 'Text:', text
+print 'Bold:', bold.sub(r'<strong>\1</strong>', text)
+print
+
+ # but it's basically the same to use named groups, as \g<group_name>
+
+bold = re.compile(r'\*{2}(?P<bold_text>.*?)\*{2}', re.UNICODE)
+text = 'Make this **bold**. This **too**.'
+
+print 'Text:', text
+print 'Bold:', bold.sub(r'<strong>\g<bold_text></strong>', text)
+print
+
+ # you can also add a count value, which is the maximum number of substitutions that will be performed
+
+bold = re.compile(r'\*{2}(?P<bold_text>.*?)\*{2}', re.UNICODE)
+text = 'Make this **bold**. This **too**.'
+
+print 'Text:', text
+print 'Bold:', bold.sub(r'<strong>\g<bold_text></strong>', text, count=1 )
+print
+
+ # subn() works almost the same as sub(), but it also returns the number of substitutions made
+
+bold = re.compile(r'\*{2}(?P<bold_text>.*?)\*{2}', re.UNICODE)
+text = 'Make this **bold**. This **too**.'
+
+print 'Text:', text
+print 'Bold:', bold.subn(r'<strong>\g<bold_text></strong>', text )
+print
+
+ # Splitting strings with str.split() only works with literal values as separators
+ # but the same function can be recreated if needed in situatuons where a regular expression is better
+ # findall can work but it has some limitations, so there's also re.split()
+
+text = '''Paragraph one\non two lines.\n\nParagraph two.\n\n\nParagraph three.'''
+
+print "Missing the last paragraph, tsk tsk tsk:"
+for num, para in enumerate(re.findall(r'(.+?)\n{2,}', text, flags=re.DOTALL)):
+         print num, repr(para)
+         print
+print 'with findall:'
+for num, para in enumerate(re.findall(r'(.+?)(\n{2,}|$)', text, flags=re.DOTALL)):
+         print num, repr(para)
+         print
+print 'with split:'
+for num, para in enumerate(re.split(r'\n{2,}', text)):
+         print num, repr(para)
+         print
+print 'with split and grouping of the pattern:'
+for num, para in enumerate(re.split(r'(\n{2,})', text)):
+         print num, repr(para)
+         print
