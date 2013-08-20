@@ -50,7 +50,7 @@ print '%s / %s = %s' % (f1, f2, f1/f2)
 
 
 ## 5.2.3 Approximating Values
-print 'PI       =', math.psi
+print 'PI       =', math.pi
 f_pi = fractions.Fraction(str(math.pi))
 print 'No limit =', f_pi
 
