@@ -28,10 +28,10 @@ for i in xrange(5):
 print '\n'
 
 ## 5.3.3 Saving State
-if os.path.exists('5.3.3-state.dat'):
+if os.path.exists('data/5.3.3-state.dat'):
     #Restore the previously saved state
     print "Found '5.3.3-state.dat', initializing random module"
-    with open('5.3.3-state.dat', 'rb') as f:
+    with open('data/5.3.3-state.dat', 'rb') as f:
         state = pickle.load(f)
     random.setstate(state)
 else:
@@ -45,7 +45,7 @@ for i in xrange(3):
 print '\n'
  
 # Save state for next time
-with open('5.3.3-state.dat', 'wb') as f:
+with open('data/5.3.3-state.dat', 'wb') as f:
     pickle.dump(random.getstate(), f)
 
 # Produce more random values
