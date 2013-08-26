@@ -1,0 +1,20 @@
+deadline,project,priority,details,status
+2013-06-30,pystl,2,"Chapter 1 TEXT",None
+2013-06-30,pystl,2,"Chapter 2 DATA STRUCTURES",None
+2013-06-30,pystl,2,"Chapter 3 ALGORITHMS",None
+2013-07-30,pystl,2,"Chapter 4 DATES AND TIMES",None
+2013-07-30,pystl,2,"Chapter 5 MATHEMATICS",None
+2013-07-30,pystl,2,"Chapter 6 THE FILE SYSTEM",None
+2013-08-30,pystl,2,"Chapter 7 DATA PERSISTENCE AND EXCHANGE",None
+2013-09-30,pystl,2,"Chapter 12 THE INTERNET",None
+2013-09-30,pystl,2,"Chapter 13 EMAIL",None
+2013-10-30,pystl,2,"Chapter 14 APPLICATION BUILDING BLOCKS",None
+2013-10-30,pystl,2,"Chapter 15 INTERNATIONALIZATION AND LOCALIZATION",None
+2013-10-30,pystl,2,"Chapter 16 DEVELOPER TOOLS",None
+2013-10-30,pystl,2,"Chapter 17 RUNTIME FEATURES",None
+2013-10-30,pystl,2,"Chapter 18 LANGUAGE TOOLS",None
+2013-10-30,pystl,2,"Chapter 19 MODULES AND PACKAGES",None
+2013-08-30,pystl,2,"Chapter 8 DATA COMPRESSION AND ARCHIVING",None
+2013-08-30,pystl,2,"Chapter 9 CRYPTOGRAPHY",None
+2013-09-30,pystl,2,"Chapter 10 PROCESSES AND THREADS",None
+2013-09-30,pystl,2,"Chapter 11 NETWORKING",None
