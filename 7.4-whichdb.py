@@ -1,4 +1,4 @@
-## whichdb - Identify DBM-Style Database Formats
+## 7.4 whichdb - Identify DBM-Style Database Formats
 import platform
 from contextlib import closing
 
