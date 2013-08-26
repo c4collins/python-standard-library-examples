@@ -49,4 +49,4 @@ print
 ## 7.2.3 Specific Shelf Types
 # Using shelve.open() uses a database selected automatically, 
 # but when the db format is important, it's possible to use
-# DbfilenameShelf and BsdDbShelf directly, or even subclss Shelf itself for a custom solution.
+# DbfilenameShelf and BsdDbShelf directly, or subclass Shelf itself for a custom solution.
