@@ -1,6 +1,10 @@
 ## 7.5 sqlite3 - Embedded Relational Database
+# things I'm familiar with
 import sqlite3, os, sys, csv, itertools
-import logging, threading, time
+# Things I've used a bit
+import logging, threading, time, random
+# things that are relatively new to me
+import collections 
 # literal_eval evaluates a string value to a Boolean "True" becomes True etc.
 from ast import literal_eval
 # closing closes things that need to be closed, whenever they are supposed to close.
@@ -67,25 +71,24 @@ def create_new_database( db_filename, schema_filename, add_starter_data=False ):
     schema_is_new = not os.path.exists(schema_filename)
 
     if db_is_new or schema_is_new:
-        with closing( sqlite3.connect(db_filename) ) as conn:
-            if db_is_new:
-                print "Database was created."   
-            else:
-                print "Database already exists."
+        if db_is_new:
+            print "Database was created."   
+        else:
+            print "Database already exists."
 
-            if schema_is_new:
-                # The next step is creating a schema
-                with closing( open(schema_filename, 'w+' ) ) as schema_file:
-                    schema_file.write(schema)
-                print "  Schema was created."
-            else: 
-                print "  Schema already exists."
+        if schema_is_new:
+            # The next step is creating a schema
+            with closing( open(schema_filename, 'w+' ) ) as schema_file:
+                schema_file.write(schema)
+            print "  Schema was created."
+        else: 
+            print "  Schema already exists."
         print
-
+        
     # apply the schema (from file, in this case)
     # [though I'm overwriting the variable which already has the schema so this is not exactly useful]
-    with closing( sqlite3.connect(db_filename) ) as conn:
-        if (db_is_new or schema_is_new) :
+    with sqlite3.connect(db_filename) as conn:
+        if db_is_new or schema_is_new :
             print "Applying Schema"
             with closing( open(schema_filename, 'r') ) as f:
                 schema = f.read()
@@ -110,14 +113,18 @@ def create_new_database( db_filename, schema_filename, add_starter_data=False ):
                 insert into task ( details, status, deadline, project )
                 values ( 'Chapter 8', 'new', '2013-08-27', 'pystl' );        
                 """ 
-                with closing( sqlite3.connect(db_filename) ) as conn:
-                    print "Inserting Starter Data"
-                    conn.executescript(data)
+                print "Inserting Starter Data"
+                conn.executescript(data)
+        else:
+            print "Database already exists"
+        conn.commit()
+        return conn
     
 ## 7.5.2 Retrieving Data
 # to retrieve values, create a cursor from a database connection.
 # A cursor provides a consistent view of data and is the primary means or transacting with a relational db
-def fetch_project_tasks(project_name, fetch_type = 'all'):
+
+def fetch_project_tasks( db_filename, project_name, fetch_type = 'all'):
     """Provides a bit of a clunky access to fetch certain specific items from the database"""
     with closing( sqlite3.connect(db_filename) ) as conn:
         # create cursor
@@ -136,9 +143,8 @@ def fetch_project_tasks(project_name, fetch_type = 'all'):
         
         elif fetch_type == 'one':
             # there`s also a fetchone() that just fetches the first result,
-            for row in cursor.fetchone():
-                task_id, priority, details, status, deadline = row
-                print task_fmt.format( task_id, priority, details, status, deadline )
+            task_id, priority, details, status, deadline = cursor.fetchone()
+            print task_fmt.format( task_id, priority, details, status, deadline )
             print
             
         elif fetch_type == 'many':
@@ -270,9 +276,10 @@ def update_task_status(db_filename, id, status):
 # use executemany() to apply the same set of SQL instructions to a large set of data
 # this avoids complicating the code with loops and lets the underlying library apply loop optimization
 
-def insert_data_from_csv(data_filename):
+def insert_data_from_csv( db_filename, data_filename, conn=None ):
     """Reads a CSV file and imports that data into the task table"""
     #  run as `python 7.5-sqlite3.py insert data_file.csv`
+    print "Inserting data"
     SQL = """
     insert into task (details, priority, status, deadline, project)
     values (:details, :priority, :status, :deadline, :project)
@@ -281,12 +288,17 @@ def insert_data_from_csv(data_filename):
     with closing( open( data_filename, 'r' ) ) as csv_file:
         # create a csv.DictReader to handle the data
         csv_reader = csv.DictReader(csv_file)
-        
-        with closing( sqlite3.connect(db_filename) ) as conn:
+
+        if not conn:
+            with closing( sqlite3.connect(db_filename) ) as conn:
+                cursor = conn.cursor()
+                cursor.executemany(SQL, csv_reader)
+                conn.commit()
+        else:
             cursor = conn.cursor()
             cursor.executemany(SQL, csv_reader)
-            
             conn.commit()
+            return (conn, cursor)
                
 
 ## 7.5.7 Defining New Column Types
@@ -328,7 +340,7 @@ def show_deadline(conn, project_name):
         print ' %-8s  %-30s %s' % (col, row[col], type( row[col] ))
 
 # To register a new type with sqlite3, two functions must be registered
-# The -adapter- takes the Python object as input andreturns a byte-string that can be stored in the database.
+# The -adapter- takes the Python object as input and returns a byte-string that can be stored in the database.
 # The -converter- receives the string and returns a Python object
 # register them to sqlite3 with register_adapter() and register_converter()
 def adapter_function(obj):
@@ -347,6 +359,8 @@ class MyDataObject(object):
         self.arg = arg
     def __str__(self):
         return 'MyDataObject(%r)' % self.arg
+    def __cmp__(self, other):
+        return cmp(self.arg, other.arg)
         
 def demo_object_registration( db_filename )  :   
     """Demonstrates the effects of registering a Python object adapter/converter for sqlite3"""
@@ -510,10 +524,10 @@ def demo_isolation_levels( db_filename, isolation_level=False ):
 def demo_isolation_levels_writer( db_filename, isolation_level, ready ):
     """Connects to and makes a minor change to the task table"""
     my_name = threading.currentThread().name
-    with closing( sqlite3.connect( db_filename, isolation_level=isolation_level ) ) as conn:
+    with closing( sqlite3.connect( db_filename ) ) as conn:
         cursor = conn.cursor()
         # make a change to the db and see what happens in this isolation level
-        cursor.execute("""update task set priority = priority + 1""")
+        cursor.execute("""update task set priority = priority + ?""", (random.randint(-1,1),))
         logging.debug("Waiting to sync")
         ready.wait() # synchronize threads
         logging.debug("Pausing")
@@ -537,17 +551,262 @@ def demo_isolation_levels_reader( db_filename, isolation_level, ready ):
         logging.debug("Results fetched")
     return
     
-
+## 7.5.11 In-Memory Databases
+# SQLite supports hosting the whole db in RAM rather than on disk
+# to do so use the string ':memory:' instead of a db_filename when creating the Connection
+# Each ':memory:' connection creates a separate database instance, so changes do not affect other cursors 
     
+## 7.5.12 Exporting the Contents of a Database
+# The contents of an in-memory database can be saved using the Connection's iterdump()
+# the iterator returned by iterdump() produces a series of strings that when combined provide SQL instructions to recreate the state of the database
+def demo_dump_db_from_memory( schema_filename, data_filename, p_name, p_description, p_deadline ):
+    """Creates an in-memory db with the provided schema and data, and then prints out the interdump() output"""
+    print "Creating new database in memory with schema provided"
+    conn = create_new_database( ':memory:', schema_filename, add_starter_data=False )
+    
+    print "Inserting initial data"
+    conn.execute("""
+    insert into project ( name, description, deadline )
+    values (?, ?, ?)
+    """,  ( p_name, p_description, p_deadline ) )
+    
+    print "Inserting data from specified csv"
+    # the ':memory:' in this line is ignored, it's just a placeholder
+    conn, cursor = insert_data_from_csv( ':memory:', data_filename, conn=conn )
+    
+    print "Dumping instructions"
+    for text in conn.iterdump():
+        print text
+# iterdump() also works on db files, but it's not as useful
 
+## 7.5.13 Using Python Functions in SQL
+# SQL syntax supports calling functions during queries
+# either in the column list, or where clause of the select statement
+def demo_encrypt(s):
+    print 'Encrypting %r' % s
+    return s.encode('rot-13')
+    
+def demo_decrypt(s):
+    print 'Decrypting %r' % s
+    return s.encode('rot-13')
 
+def demo_python_functions( db_filename ):
+    """demonstrates how to use Python functions in SQL queries"""
+    with closing( sqlite3.connect( db_filename ) )  as conn:
+        # functions must be registered with the connection as conn.create_function( SQL_function_name, number_arguments, python_function)
+        conn.create_function( 'encrypt', 1, demo_encrypt )
+        conn.create_function( 'decrypt', 1, demo_decrypt )
+        
+        cursor = conn.cursor()
+        
+        # Raw Values
+        print 'Original values:'
+        query = """select id, details from task"""
+        cursor.execute( query )
+        for row in cursor.fetchall():   
+            print row
+        
+        # Encrypt descriptions
+        print '\nEncrypting...'
+        query = """update task set details = encrypt(details)"""
+        cursor.execute( query )
+        
+        # Newly encrypted Values
+        print 'Encrpted values:'
+        query = """select id, details from task"""
+        cursor.execute( query )
+        for row in cursor.fetchall():   
+            print row
             
+        # Encrypt descriptions
+        print '\nDecrypting in query...'
+        query = """select id, decrypt(details) from task"""
+        cursor.execute( query )
+        for row in cursor.fetchall():   
+            print row 
+
+## 7.5.14 Custom Aggregation
+# aggregation functions collect and group data and then provides a summary
+    # (mean) avg(), min(), max() and count() and all aggregation functions
+# the sqlite3 API defines aggregators as a class with two methods
+    # step() - called once for each data value as the query is processed
+    # finalize() - called once at the end of the query and should return the aggregate value
+    
+# this example implements the mode average as mode()
+def demo_counter():
+    """a Counter will tally occurrences of anything."""
+    cnt = collections.Counter()
+    for word in ['yellow', 'blue', 'orange', 'green', 'green', 'red', 'yellow', 'purple', 'orange', 'green', 'blue', 'red', 'white', 'blue', 'red', 'green', 'blue', 'green',]:
+        cnt[word] += 1
+    print "cnt                      :   ", cnt
+    print "cnt.elements()           :   ", [element for element in cnt.elements()]
+    print "cnt.most_common()        :   ", cnt.most_common()
+    print "cnt.most_common(3)       :   ", cnt.most_common(3)
+    print "cnt.most_common(1)[0]    :   ", cnt.most_common(1)[0]
+    print "cnt.most_common(1)[0][0] :   ", cnt.most_common(1)[0][0]
+
+class Mode(object):
+    def __init__(self):
+        self.counter = collections.Counter()
+        
+    def step(self, value):
+        print "step(%r)" % value
+        self.counter[value] += 1
+        
+    def finalize(self):
+        result, count = self.counter.most_common(1)[0]
+        print "finalize() -> %r (%d times)" % (result, count)
+        return result
+        
+def mode( db_filename, project_name ):       
+    with closing( sqlite3.connect( db_filename ) ) as conn:
+        # register the aggregate, in the same format as registering a python function
+        conn.create_aggregate( 'mode', 1, Mode )
+        
+        cursor = conn.cursor()
+        cursor.execute("""
+        select mode(deadline) from task where project = ?
+        """, ( project_name, ) )
+        row = cursor.fetchone()
+        print 'mode(deadline) is:', row[0]
+
+## 7.5.15 Custom Sorting
+# a collation is a comparison function used in the orber by section of an SQL query
+# custom collations can be used to sort data types that cannot be internally sorted by SQLite
+def collation_function(a, b):
+    a_obj = quiet_converter_function(a)
+    b_obj = quiet_converter_function(b)
+    print "collation_function(%s, %s)" % (a_obj, b_obj)
+    return cmp(a_obj, b_obj)
+    
+def quiet_adapter_function(obj):
+        """Convert from in-memory Python object to storage representation"""
+        return pickle.dumps(obj)
+    
+def quiet_converter_function(data):
+    """Convert from storage representation to Python object"""
+    return pickle.loads(data)
+
+def custom_sort( db_filename ):
+    # register the functions for manipulating the type
+    sqlite3.register_adapter(MyDataObject, quiet_adapter_function)
+    sqlite3.register_converter("MyDataObject", quiet_converter_function)
+    
+    with closing( sqlite3.connect( 
+        db_filename,
+        detect_types = sqlite3.PARSE_DECLTYPES
+    )) as conn:
+        
+        # define the collation
+        conn.create_collation('unpickle', collation_function)
+        
+        # clear the table and insert new values
+        conn.execute("""
+        delete from obj
+        """)
+        conn.executemany("""
+        insert into obj (data)
+        values (?)
+        """, [ ( MyDataObject(i), ) for i in xrange(5, 0, -1) ], )
+        
+        # query the db for the objects just saved
+        print "Querying:"
+        cursor = conn.cursor()
+        cursor.execute("""
+        select id, data from obj
+        order by data collate unpickle
+        """)
+        for obj_id, obj in cursor.fetchall():
+            print obj_id, obj
+     
+## 7.5.16 Threading and Connection Sharing
+# Connection objects cannot be shared across threads
+def threading_reader(conn):
+    my_name = threading.currentThread().name
+    print "Starting thread"
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+        select * from task
+        """)
+        results = cursor.fetchall()
+        print "Results fetched"
+    except Exception, err:
+        print 'Error:', err
+    return
+
+def demo_threading( db_filename, isolation_level=None ):
+    with closing( sqlite3.connect( db_filename,
+        isolation_level = isolation_level
+    )) as conn:
+        t = threading.Thread(
+            name="Reader 1", 
+            target=threading_reader, 
+            args=(conn,)
+        )
+        t.start()
+        t.join()
+
+## 7.5.17 Restricting Access to Data
+# SQLite does not have user access controls like can be found in other rdbs
+# It does have authorizer functions, which can grant or deny access to columns at runtime
+# The authorizer function is invokes during the parsing of SQL statements, and is passed five arguments;
+# the first argument being an action code and the rest relating to that code
+
+def authorizer_function( action, table, column, sql_location, ignore):
+    print "authorizer_function(%s, %s, %s, %s, %s)" % ( action, table, column, sql_location, ignore)
+    
+    # by default, be permissive
+    response = sqlite3.SQLITE_OK
+    
+    if action == sqlite3.SQLITE_SELECT:
+        print "requesting permission to run a select statement"
+        response = sqlite3.SQLITE_OK
+    
+    elif action == sqlite3.SQLITE_READ:
+        print "Requesting access to column %s.%s from %s" % ( table, column, sql_location)
+        
+        if column == "details":
+            print "\tIgnoring details column"
+            response = sqlite3.SQLITE_IGNORE
+            
+        elif column == "priority":
+            print "\tPreventing access to priority column"
+            response = sqlite3.SQLITE_DENY
+            
+    return response
+
+def demo_access_restriction( db_filename, p_name ):
+    with closing( sqlite3.connect( db_filename ) ) as conn:
+        conn.row_factory = sqlite3.Row
+        conn.set_authorizer( authorizer_function )
+        cursor = conn.cursor()
+        
+        print "Using SQLITE_IGNORE to mask a column value:"
+        cursor.execute("""
+        select id, details from task where project = ?
+        """, ( p_name, ) )
+        for row in cursor.fetchall():
+            print row['id'], row['details']
+        
+        try:        
+            print "Using SQLITE_DENY to deny access to a column:"
+            cursor.execute("""
+            select id, priority from task where project = ?
+            """, ( p_name, ) )
+            for row in cursor.fetchall():
+                print row['id'], row['priority']
+        except sqlite3.DatabaseError, err:
+            print "SQLite3 Database Error:", err
+        
 ## Function Controls
 if __name__ == '__main__':
     # check for special commands as arguments
     arg_command = sys.argv[1] if len(sys.argv) >= 2 else None
+    
     if arg_command is None:
         print "No command entered."
+        
     elif arg_command == 'create_db':
         # create a new database file using the supplied file locations
         # if any filename that doesn't exist is given, it will be created
@@ -559,6 +818,7 @@ if __name__ == '__main__':
             print "You must specify both a db filename and a schema filename, though neither has to exist yet."
             raise
         create_new_database( db_filename, schema_filename )
+        
     elif arg_command == 'create_demo_db':
         # if you want the database to be populated with sample data matching the book's schema use this function instead
         try:
@@ -578,8 +838,12 @@ if __name__ == '__main__':
             raise
         try:
             project_name = sys.argv[3]
+            try:
+                literal_eval(sys.argv[3])
+            except ValueError:
+                print "You must indicate the project name to view the type detection results."
         except IndexError:
-            print "You should specify the project name."
+            print "You should specify the project name if you want more details."
             project_name = '*' # defaults to all
         try:
             type_detection = literal_eval(sys.argv[4])
@@ -589,8 +853,6 @@ if __name__ == '__main__':
         except IndexError:
             print "\nYou can specify if you want to see the data types by adding a boolean value as the fourth argument. setting type_detection to False will show you the types as stored in the db, and True will show you the types as understood by sqlite3 - type detection failed"
             type_detection = None
-        else:
-            print "Else t_d", type_detection
         
         display_columns( db_filename, project_name, type_detection )
         
@@ -605,33 +867,32 @@ if __name__ == '__main__':
         display_rows_via_objects( db_filename, project_name )
         
     # there are a few options when it comes to asking for the fetch commands
-    elif arg_command == 'fetch' and len(sys.argv) == 3:
-        # default to fetchall() if no second argument is passed
-        try:
-            project_name = sys.argv[2]
-        except IndexError:
-            print "Please provide a project name"
-            raise
-        fetch_project_tasks( project_name, 'all' )
+       
     elif arg_command == 'fetch':
         # otherwise, pass in the second argument as the fetch_type
         try:
-            project_name = sys.argv[2]
-            fetch_type = sys.argv[3]
+            db_filename = sys.argv[2]
+            project_name = sys.argv[3]
+            fetch_type = sys.argv[4]
         except IndexError:
-            print "This error shouldn't be possible."
+            print "You didn't enter those arguments correctly. It should be `db_filename project_name [fetch_type]`"
             fetch_type = 'all'
         finally:
-            fetch_project_tasks( project_name, fetch_type )
+            fetch_project_tasks( db_filename, project_name, fetch_type )
     
     elif arg_command == 'insert':
         # insert the data from the csv file specified
         try:
-            csv_file_location = sys.argv[2]
+            db_filename = sys.argv[2]
+        except IndexError:
+            print "You must specify the database file to use"
+            raise
+        try:
+            csv_file_location = sys.argv[3]
         except IndexError:
             print "This function requires a csv file of data to insert"
             raise
-        insert_data_from_csv( csv_file_location )
+        insert_data_from_csv( db_filename, csv_file_location )
         
     elif arg_command == 'update':
         # update the status of the indicated task
@@ -671,6 +932,7 @@ if __name__ == '__main__':
             db_filename = 'data/7.5-sqlite3_to-do.db'
         demo_commit_to_database( db_filename )
         print "This is just a demo, but it may have left some traces in the db file. Specifically, if you specified a db file that didn't previously exist, it now does."
+        
     elif arg_command == 'demo_isolation':
         # show the differences in isolation levels
         try:
@@ -682,6 +944,82 @@ if __name__ == '__main__':
         except IndexError:
             isolation_level = False
         demo_isolation_levels( db_filename, isolation_level )
-        print "This may have changed the db."    
+        print "This process has randomly in/decremented all task priorities by 1 twice."
+        
+    elif arg_command == 'demo_memory_db':
+        # show the differences in isolation levels
+        try:
+            schema_filename = sys.argv[2]
+        except IndexError:
+            schema_filename = 'data/7.5-sqlite3_to-do_schema.sql'
+        try:
+            data_filename = sys.argv[3]
+        except IndexError:
+            data_filename = 'data/7.5-sqlite3_chapters.csv' 
+        try:
+            project_name = sys.argv[4]
+        except IndexError:
+            project_name = 'pystl'
+        try:
+            project_description = sys.argv[5]
+        except IndexError:
+            project_description = 'Python Standard Library by Example'
+        try:
+            project_deadline = sys.argv[6]
+        except IndexError:
+            project_deadline = '2013-10-31'
+        demo_dump_db_from_memory( schema_filename, data_filename, project_name, project_description, project_deadline )
+        
+    elif arg_command == 'demo_functions':
+        # show the differences in isolation levels
+        try:
+            db_filename = sys.argv[2]
+        except IndexError:
+            db_filename = 'data/7.5-sqlite3_to-do.db'
+        demo_python_functions( db_filename )
+    
+    elif arg_command == 'demo_counter':
+        demo_counter()
+
+    elif arg_command == 'mode':
+        # show the mode(deadline)
+        try:
+            db_filename = sys.argv[2]
+        except IndexError:
+            db_filename = 'data/7.5-sqlite3_to-do.db'
+        try:
+            project_name = sys.argv[3]
+        except IndexError:
+            project_name = 'pystl'
+        mode( db_filename, project_name )
+        
+    elif arg_command == 'custom_sort':
+        # sort by custom data object value
+        try:
+            db_filename = sys.argv[2]
+        except IndexError:
+            db_filename = 'data/7.5-sqlite3_to-do.db'
+        custom_sort( db_filename )
+        
+    elif arg_command == 'demo_threading':
+        # Demonstrate threading errors
+        try:
+            db_filename = sys.argv[2]
+        except IndexError:
+            db_filename = 'data/7.5-sqlite3_to-do.db'
+        demo_threading( db_filename )
+        
+    elif arg_command == 'demo_access':
+        # Demonstrate how access restrictions can be done via authorization functions
+        try:
+            db_filename = sys.argv[2]
+        except IndexError:
+            db_filename = 'data/7.5-sqlite3_to-do.db'
+        try:
+            project_name = sys.argv[3]
+        except IndexError:
+            project_name = 'pystl'
+        demo_access_restriction( db_filename, project_name )
+        
     else:
         print "Command not recognized."
