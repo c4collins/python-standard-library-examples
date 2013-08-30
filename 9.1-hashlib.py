@@ -1,30 +1,25 @@
-## hashlib
+## 9.1 hashlib - Cryprographic Hashing
  # hashlib is the core of Python cryptography, and includes many popular encryption algorithms
 
 import hashlib, sys, random
 
-lorem = '''Lorem ipsum dolor sit amet, consectetur adispisicing elit,
-sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut
-enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi
-ut aliquip ex ea commodo consequat. Duis aute irure dolor in
-reprehenderit in voluptate velit ease cillum dolore eu fugiat nulla
-pariatur. Exceptur sint occaecat cupidatat non proident, sunt in
-culpa qui officia deserunt mollit anim id est laborum.'''
+## 9.1.1 Sample Data
+lorem = open( 'data/lorem.txt', 'r').read()
 
-
- # MD5 - crete the hash object, add the data, then call digest() or hexdigest()
-
+## 9.1.2 MD5 Example
+# MD5 - crete the hash object, add the data, then call digest() or hexdigest()
 h = hashlib.md5()
 h.update(lorem)
 print 'MD5 :', h.hexdigest()
 
- # SHA1 - crete the hash object, add the data, then call digest() or hexdigest()
-
+## 9.1.3 SHA1 Example
+# SHA1 - crete the hash object, add the data, then call digest() or hexdigest()
 h = hashlib.sha1()
 h.update(lorem)
 print 'SHA1:', h.hexdigest()
 
- # sometimes it's easier to call the hash by name
+## 9.1.4 Creating a Hash by Name
+# sometimes it's easier to call the hash by name
 try:
     hash_name = sys.argv[1]
 except IndexError:
@@ -38,7 +33,8 @@ finally:
     all_at_once = h.hexdigest()
     print 'All at once :', all_at_once
 
- # update() can be used to feed in text incrementally
+## 9.1.5 Incremental Updates
+# update() can be used to feed in text incrementally
 def chunksize(size, text):
     """return parts of the text in size-based increments"""
     start = 0
@@ -59,5 +55,4 @@ all_at_once = h.hexdigest()
 
 print 'Line by line:', line_by_line
 print 'Same        :', (all_at_once == line_by_line)
-
 
