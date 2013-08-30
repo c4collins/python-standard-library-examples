@@ -24,8 +24,7 @@ try:
     hash_name = sys.argv[1]
 except IndexError:
     print "Whoops, you didn't enter a hash type.  I'm gonna choose one for you."
-    types = ['sha1', 'sha256', 'sha512', 'md5']
-    hash_name = random.choice(types)
+    hash_name = random.choice( hashlib.algorithms )
 finally:
     print "Hash type:", hash_name
     h = hashlib.new(hash_name)
