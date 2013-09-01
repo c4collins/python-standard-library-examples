@@ -211,7 +211,7 @@ print parser2.parse_args( [ '--user', 'user', '--password', 'password', ] )
 parser2 = argparse.ArgumentParser( conflict_handler='resolve', description="Conflicting Options - Masked option",  )
 parser2.add_argument( '-b', action='store' )
 parser2.add_argument( '--long-b','-b', action='store' )
-print parser2.parse_args( )
+print "**", parser2.parse_args( )
 
 # Unmasked option
 parser2 = argparse.ArgumentParser( conflict_handler='resolve', description="Conflicting Options - Unmasked option",  )
