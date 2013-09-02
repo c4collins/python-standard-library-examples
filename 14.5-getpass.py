@@ -28,4 +28,4 @@ print 'You entered:', p
 
 ## 14.5.2 Using getpass without a terminal
 # Under UNIX, getpass always requires a tty
-# python 2.6 and 2.7 try wehn redirecting sys.stdin, but it's still not very useful outside the cli
+# Python 2.6 and 2.7 try wehn redirecting sys.stdin, but it's still not very useful outside the cli
