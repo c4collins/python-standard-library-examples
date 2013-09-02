@@ -90,7 +90,7 @@ print 'Unused data matches lorem :', decompressor.unused_data == lorem
 print
 
 ## 8.3.4 Writing Compressed Files
-# BZ2File can be used to write to an d read from bz2-compressed fils using the usual methods for reading and writing data
+# BZ2File can be used to write to an d read from bz2-compressed files using the usual methods for reading and writing data
 read_write_file = 'data/8.3-bz2_read-write.bz2'
 with closing( bz2.BZ2File( read_write_file, 'wb') ) as output:
     output.write( original_data )

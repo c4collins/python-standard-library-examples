@@ -53,7 +53,7 @@ for quoting in random.sample( [ csv.QUOTE_ALL, csv.QUOTE_MINIMAL, csv.QUOTE_NONN
     # This doesn't appear to do anything when displayed this way but:
         # QUOTE_ALL should quote everything
         # QUOTE_MINIMAL should quote fields with special characters - Default.
-        # QUOTE_NONNUMERIC sould quote anything that isn't an integer or a float.
+        # QUOTE_NONNUMERIC should quote anything that isn't an integer or a float.
         # QUOTE_NONE will not quote anything on output
     # the file does have the specified quoting patterns though
 
