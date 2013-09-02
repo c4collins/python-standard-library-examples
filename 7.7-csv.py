@@ -17,6 +17,11 @@ with closing( open( demo_data_file, 'r' ) ) as f:
         print row
         
 # The parser handles line breaks embedded within strings in a row, so sometimes a row can be more than one line in the file
+# For example:
+    # "Connor","Col
+    # lins"
+# This appears in text as two lines, but will be parsed as:
+    # "Connor", "Col\nlins"
 
 ## 7.7.2 Writing
 # Writing to CSV files is very similar to reading them
@@ -105,7 +110,7 @@ for name in sorted( csv.list_dialects() ):
     
 # Obviously, if you know the format in advance that is the best
 # but the Sniffer class can be used to try to guess if necessary
-# the sniff(0 method dakes a sample of the input data and optionally an argument defining possible delimiting characters
+# the sniff() method dakes a sample of the input data and optionally an argument defining possible delimiting characters
 
 # generate sample data for all known dialects
 samples = []
