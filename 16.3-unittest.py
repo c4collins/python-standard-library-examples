@@ -27,7 +27,7 @@ class OutcomesTest( unittest.TestCase ):
         return
     
     def testFail(self):
-        self.failIt(True)
+        self.failIf(True)
         
     def testError(self):
         raise RuntimeError("Test error!")
@@ -136,10 +136,6 @@ class FixturesTest( unittest.TestCase ):
 # The stdlib documentation descibes how to organize test suites manually.
 # Automated test discovery is more manageable for large code bases in which related tests are not all in the same place.
 # Tools such as nose and py.test make it easier o manage tests when they are spread over multiple files and directories.
-
-
-
-
 
 ## 16.3.2 Running Tests
 # The easiest way is to include the following at the bottom of each test file and simply run the script directly from the CLI
