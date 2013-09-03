@@ -1,0 +1,37 @@
+Chapter 16 - Developer Tools
+
+pydoc
+    Generated formatted reference documentation from the docstrings included in the source code for any importable module
+    
+doctest
+    Extracts test scenarios from examples included in documentation, either inside the source or in standalone files
+    
+unittest
+    Automatic testing framework with support for fixtures, predefined test suites, and test discovery
+    
+trace
+    Monitors the way Python executes a program, producing a report showing thow many times each line was run.
+    That information can be used to find code paths that are not being tested by an automated test suite 
+    and to study the function call graph to find dependencies between modules
+    
+traceback
+    Prepares output similar to Python's built in error handling for writing to logs or message dialogs
+    
+cgitb
+    Can be used when the standard error message doesn't give enough information to see details like 
+    local variable settings at each level of the stack and source context
+    cgitb can also form tracebacks in HTML for reporting errors in web applications
+    
+pdb
+    Allows for stepping through a module to follow code paths to errors and experimenting with changing live objects and code
+    
+profile & timeit
+    Measure the speed of a file and find the slow parts so they can be isolated and improved
+    
+compileall
+    Exposes the interface installation programs and packaging tools use to create files containing the byte code for a module.
+    It can be used in the development environment to make sure a file does not have any syntax errors and to build the byte-compiled files to package
+    
+pyclbr
+    Provides a class browser that a text editor or other program can use to scan Python source for interesting symbols
+    such as functions and classes, without importing the code and potentially triggering side effects
