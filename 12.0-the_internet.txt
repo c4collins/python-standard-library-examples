@@ -1,0 +1,32 @@
+Chapter 12 - The Internet
+
+theInternet is a pervasive aspect of modern computing.  Even small, single use scripts frequently interact with remote services to send or receive data.  Python's rich set of tools for working with web protocols makes it well suited for programming web-based applications, wither as a client or as a server.
+
+urlparse
+Manipulates URL strings, splitting and combining their components, and is useful in clients and servers.
+
+urllib/urllib2
+Offer an API for retrieving content remotely
+urllib2 is easier to extend with new protocols and urllib2.Request provides a way to use custom headers
+HTTP POST requests are 'form encoded' with urllib.  Binary data should be encoded with base64 first, to comply with the format standard
+
+roboparser
+Allows well-behaved spider and crawler scripts to ensure they have permission before putting a heavy load on a remote server
+
+BaseHTTPServer
+Creates a custom web server without requiring any external frameworks.
+It handles the HTTP protocol, so the only required customization needed is the application code for responding to the incoming requests.
+
+Cookie
+Creates and parses cookies to manage the server state.  
+Full support for expiation, path, domain, and other cookie settings makes it easy to configure the session
+
+uuid 
+Generates identifiers for resources that need unique values.  
+UUIDs are good for automatically generating Unique Resource Name (URN) values when the name of the resource must be unique but doesn't have to convey meaning.
+
+json
+Accesses the Javascript Object Notation encoding scheme used in AJAX, for slient or server
+
+xmlrpclib/SimpleXMLRPCServer
+Provides access to the complete XML-RPC client and server libraries.
