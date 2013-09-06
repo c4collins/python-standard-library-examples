@@ -1,14 +1,14 @@
 ## 12.1 urlparse - Split URLs into Components
 # urlparse provides functions for breaking URLs into their component parts as defined by RFC
 import urlparse
-import logging
-import argparse
 
 # Set up logging
+import logging
 logging.basicConfig( level=logging.DEBUG, format="[%(levelname)-5s] %(asctime)s.%(msecs)d (%(name)s) %(message)s", datefmt='%H:%M:%S', )
 
 # Argument Parsing
-parser = argparse.ArgumentParser( description="Chapter 12 - The Internet", add_help=True )
+import argparse
+parser = argparse.ArgumentParser( description="Chapter 12 - The Internet - urlparse", add_help=True )
 parser.add_argument( '--section','-s', action='store', type=int, dest="section", help="Enter the section number to see the results from that section.  i.e for 12.1.1, enter 1, for 12.1.10 enter 10.  Entering 0 will run all sections.")
 
 results = parser.parse_args()
@@ -41,7 +41,7 @@ complex_url = "http://user:pwd@NetLoc:80/p1;param/p2;param?query-arg#frag"
 extra_url = "http://NetLoc/path;?#"
 base_url = "http://www.example.com/path/file.html"
 
-if results.section in [0,1,2,3]:
+if results.section in xrange(4):
 
     ## 12.1.1 Parsing
     if results.section == 1 or results.section == 0:
@@ -53,13 +53,13 @@ if results.section in [0,1,2,3]:
         logger.debug( "urlparse.urlparse( %s )", simple_url )
         log_parsed_url( urlparse.urlparse(simple_url) )
         
-        # urlsplit() is an alternative to urlparse by keeping parameters with the url
+        # urlsplit() is an alternative to urlparse by keeping parameters with the URL
         logger.debug( "urlparse.urlsplit( )" )
         logger.debug( "urlparse.urlsplit( %s )", complex_url )
         log_parsed_url( urlparse.urlsplit( complex_url ) )
         # urlsplit() returns an object that acts like a tuple with 5 elements, as there are no params
      
-        # To simply string the gragment identifier from a URL, use urldefrag()
+        # To simply string the fragment identifier from a URL, use urldefrag()
         url, fragment = urlparse.urldefrag(simple_url)
         logger.debug( "urlparse.urldefrag( )" )
         logger.debug( "urlparse.urldefrag( %s )", simple_url )
