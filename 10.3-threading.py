@@ -6,7 +6,7 @@ import time
 import logging
 import random
 
-# The logging mpodule supports embedding the threadname in every log message
+# The logging module supports embedding the threadname in every log message
 # Using the the formatter code %(threadName)s.
 # logging is threadsafe.
 logging.basicConfig( level=logging.DEBUG, format="[%(levelname)-5s] %(asctime)s.%(msecs)d (%(threadName)-10s) %(message)s", datefmt='%H:%M:%S', )
