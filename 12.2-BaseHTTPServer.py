@@ -45,10 +45,10 @@ class GetHandler( BaseHTTPRequestHandler ):
         message_parts.append('')
         message_parts.append("ALL SERVER OBJECT ATTRIBUTES (NO METHODS):")
       
-        for item in dir(self):
-            thing = getattr(self, item)
-            if not callable( thing ):
-                message_parts.append("%s: %s" % (item, thing) )
+        for attr_name in dir(self):
+            attr = getattr(self, attr_name)
+            if not callable( attr ):
+                message_parts.append("%s: %s" % (attr_name, attr) )
 
         message = '\r\n'.join( message_parts )
         # every response requires a response code
