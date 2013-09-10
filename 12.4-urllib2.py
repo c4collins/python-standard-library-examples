@@ -1,4 +1,4 @@
-## 12.3 urllib2 - Network Resource Access
+## 12.4 urllib2 - Network Resource Access
 # The urllib2 module provides an updated API for network resources identified by URLs.
 # It is designed to be extended by individual applications to support new protocols,
 # Or add variations to existing protocols (such as handling HTTP basic authentication)
