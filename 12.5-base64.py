@@ -91,7 +91,7 @@ if results.section in xrange( 0, len(chapter_sections)+1 ):
         logger.info("Original       : %s", original_string )
         
         encoded_string = base64.b16encode( original_string)
-        logger.info("Base32 Encoded : %s", encoded_string )
+        logger.info("Base16 Encoded : %s", encoded_string )
         
         decoded_string = base64.b16decode( encoded_string )
         logger.info("Decoded        : %s", decoded_string )
