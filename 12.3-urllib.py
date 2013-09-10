@@ -1,6 +1,6 @@
 ## 12.3 urllib - Network Resource Access
 # The urllib module provides a simple interface for network resource access.
-# It also includes functions for encoding and quoting arguments to be passed over HHTP to a server
+# It also includes functions for encoding and quoting arguments to be passed over HTTP to a server
 import urllib
 import os
 
@@ -44,7 +44,7 @@ chapter_sections = [
       { 'foo':['foo1', 'foo2',] }, 
       { 'url': test_url + ':80/bandb/' }, 
     ],
-    ['/a/b/c/', r'\a\b\c', r'C:\a\b\c'],
+    ['/a/b/c/', r'\a\b\c', r'C:\a\b\c'],                 # Section 3    
 ]
         
 ## Runtime Configuration

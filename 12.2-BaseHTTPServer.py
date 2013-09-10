@@ -31,6 +31,7 @@ class GetHandler( BaseHTTPRequestHandler ):
             "command=%s" % self.command,
             "path=%s" % self.path,
             "real path=%s" % parsed_path.path,
+            "query=%s" % parsed_path.query,
             "request version=%s" % self.request_version,
             '',
             "SERVER VALUES:",
@@ -43,12 +44,14 @@ class GetHandler( BaseHTTPRequestHandler ):
         for name, value in sorted( self.headers.items() ):
             message_parts.append( "%s=%s" % ( name, value.rstrip() ) )
         message_parts.append('')
-        message_parts.append("ALL SERVER OBJECT ATTRIBUTES (NO METHODS):")
-      
-        for attr_name in dir(self):
-            attr = getattr(self, attr_name)
-            if not callable( attr ):
-                message_parts.append("%s: %s" % (attr_name, attr) )
+        
+        
+        ## This is a little TMI
+        # message_parts.append("ALL SERVER OBJECT ATTRIBUTES (NO METHODS):")
+        # for attr_name in dir(self):
+            # attr = getattr(self, attr_name)
+            # if not callable( attr ):
+                # message_parts.append("%s: %s" % (attr_name, attr) )
 
         message = '\r\n'.join( message_parts )
         # every response requires a response code
@@ -91,7 +94,7 @@ class PostHandler( BaseHTTPRequestHandler ):
                 )
             else:
                 # Regular form value
-                self.wfile.write( "\t%s-%s\n" %( field, form[field].value ) )
+                self.wfile.write( "\t%-10s : %s\n" %( field, form[field].value ) )
          
         return
         
@@ -161,7 +164,6 @@ chapter_sections = [
 if results.section in xrange( 0, len(chapter_sections)+1 ):   
     for i, section in enumerate(chapter_sections):
         if results.section == i+1 or results.section == 0:
-            print section
             logger = logging.getLogger( "%s %s" % ( section['version'], section['name'] ) )
             logger.info("Showing: %s %s", section['version'], section['name'] )
             server = ThreadedHTTPServer( ('192.168.1.150', (8001 + i) ), section['handler'] )

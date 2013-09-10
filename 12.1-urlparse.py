@@ -36,7 +36,7 @@ def log_parsed_url( parsed ):
     return
 
 ## Constants
-simple_url = "http://NetLoc/path;param?query=arg#frag"
+simple_url = "http://NetLoc:port/path;param?query=arg#frag"
 complex_url = "http://user:pwd@NetLoc:80/p1;param/p2;param?query-arg#frag"
 extra_url = "http://NetLoc/path;?#"
 base_url = "http://www.example.com/path/file.html"
