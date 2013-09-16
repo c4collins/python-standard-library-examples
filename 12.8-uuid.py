@@ -133,12 +133,7 @@ if results.section in xrange( 0, len(chapter_sections)+1 ):
         
         uuids.sort()
         show_uuid_list( 'Sorted:           :', uuids, logger)
-        
-        
-        
-        
-        
-            
+ 
 else:
     # If the command isn't recognized because it wasn't given, show the help.
     if not results.section:
