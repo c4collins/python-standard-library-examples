@@ -18,7 +18,7 @@ logging.basicConfig( level=logging.DEBUG, format="[%(levelname)-5s] %(asctime)s.
 
 # Argument Parsing
 import argparse
-argparser = argparse.ArgumentParser( description="Chapter 12 - The Internet - json", add_help=True )
+argparser = argparse.ArgumentParser( description="Chapter 12 - The Internet - xmlrpclib", add_help=True )
 argparser.add_argument( '--section','-s', action='store', type=int, dest='section', help="Enter the section number to see the results from that section.  i.e for XX.YY.1, enter 1, for XX.YY.10 enter 10.")
 results = argparser.parse_args()
 
