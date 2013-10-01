@@ -1,0 +1,46 @@
+Chapter 14 - Application Building Blocks
+
+The strength of Python's standard library is its size.  It includes implementations of so many aspects of a program's
+structure that developers can concentrate on what makes their application unique, instead of implementing all of the
+basic pieces over and over again.  This chapter covers some more frequently reused building blocks that solve problems
+common to so many applications.
+
+There are three separate modules for parsing command line arguments using different styles.
+getopt - implements the same low-level processing model available to C programs and shell scripts.  It has fewer
+    features than other option-parsing libraries, but that simplicity and familiarity make it a popular choice.
+optparse - a more modern and flexible replacement for getopt
+arpparse - deprecates both getopt and optparse.  It supports converting arguments from strings to integers and other
+    types, running callbacks when an option is encountered, setting default values for options not provided by the
+    user, and automatically producing usage instructions for a program.
+
+readline - includes tools for managing history, auto-completing parts of commands, and interactive editing with vim and
+    emacs key-bindings. Interactive programs should use readline to give the user a command prompt.
+getpass - securely propmpt the user for a password or other secret input without echoing the value to screen as typed.
+
+cmd - includes a framework for interactive, command-driven shell-style programs.  It provides the main loop and handles
+    the interaction with the user, so the application only needs to implement the processing callbacks for the
+    individual commands.
+
+shlex - a parser for shell-style syntax, with lines make up of tokes separated by whitespace.  It is smart about quotes
+    and escape sequences, so text with embedded spaces is treated as a single token.  shlex works well as the tokenizer
+    domain-specific languages, such as configuration files or programming languages.
+
+ConfigParser - manages application configuration files.  It can ssave user preferences between program runs and read
+    them the next time and application starts, or even serve as a simple data file format.
+
+logging - includes a full-featured API that manages log files, supports multiple threads, and even interfaces with
+    remote logging daemons for centralized logging.  Simple error messages and tracebacks are helpful, but when it is
+    difficult to reproduce an issue, a full activity log can point directly to the chain of events that leads to a
+    failure.
+
+One of the most common patters for programs in UNIX environments is a line-by-line filter that reads data, modifies it,
+and writes it back out. Reading from files is simple enough, but there may not be an easier way to create a filter an
+application than by using the fileinput module.  Its API is a line iterator that yields each input line, so the main
+body of the program is a simple for loop.  the module handles parsing command-line arguments for filenames to be
+processed or falling back to reading directly on a file or as part of a pipeline.
+
+atexit - schedules functions to be run as the interpreter is shutting down a program.  Registering exit callbacks is
+useful for releasing resources by logging out of remote services, closing files, etc.
+
+sched - impleemnts a scheduler for triggering events at set times in the future. The API does not dictate the definition
+of time, so anything from true clock time to interpreter steps can be used.
