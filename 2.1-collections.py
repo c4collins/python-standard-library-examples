@@ -112,7 +112,7 @@ while True:
 print
 print
 
- # Deques are threadsafe; the contents can be consumed at differend ends by different threads simultaneously
+ # Deques are threadsafe; the contents can be consumed at different ends by different threads simultaneously
 import threading, time
 
 candle = collections.deque(xrange(5))
