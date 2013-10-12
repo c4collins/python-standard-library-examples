@@ -6,6 +6,12 @@
 import multiprocessing
 import time
 import sys
+import random
+import collections
+import itertools
+import operator
+import glob
+import string
 
 # Set up logging
 import logging
@@ -121,6 +127,70 @@ def stage_2(cond):
         cond.wait()
         logger.info( "%s running", name )
 
+def pool_worker(s, pool):
+    logger = logging.getLogger("pool_worker")
+    name = multiprocessing.current_process().name
+    with s:
+        pool.makeActive( name )
+        logger.info( "Now running: %s", str(pool) )
+        time.sleep( random.random() )
+        pool.makeInactive( name )
+
+def key_worker(d, key, value):
+    d[key] = value
+
+def producer( ns, event ):
+    ns.value = "This is the value."
+    ns.my_list.append('This is the fake value')
+    event.set()
+
+def consumer( ns, event ):
+    logger = logging.getLogger("consumer")
+    logger.info("Before event, list: %s", ns.my_list)
+    try:
+        value = ns.value
+    except Exception, err:
+        logger.info("Before event, error: %s", err)
+    event.wait()
+    logger.info("After event: %s", ns.value )
+    logger.info("After event, list: %s", ns.my_list)
+
+def start_process():
+    logger = logging.getLogger("start_process()")
+    logger.info("Starting %s", multiprocessing.current_process().name )
+
+def do_calculation(data):
+    return data * 2
+
+
+def file_to_words( filename ):
+    """Read a file and return a sequence of (word, occurrence) values."""
+    logger = logging.getLogger("file_to_words")
+    STOP_WORDS = set([ 'an', 'and', 'are', 'as', 'be', 'by', 'for', 'if', 'in', 'is', 'it', 'of', 'or', 'py',
+                       'that', 'the', 'to', 'with', ])
+    TR = string.maketrans( string.punctuation, " " * len(string.punctuation))
+
+    logger.info( "%s reading %s", multiprocessing.current_process().name, filename)
+    output = []
+
+    with open(filename, mode='r') as f:
+        for line in f:
+            if line.lstrip().startswith('#'): # Skip comment lines
+                continue
+            line = line.translate(TR) # Strip punctuation
+            for word in line.split():
+                word = word.lower()
+                if word.isalpha() and word not in STOP_WORDS and len(word) > 1:
+                    output.append( (word, 1) )
+    return output
+
+
+
+def count_words( item ):
+    """Convert the partitioned data for a word to a tuple containing the word and the number of occurrences."""
+    word, occurrences = item
+    return ( word, sum(occurrences) )
+
 
 ## Classes
 class Worker( multiprocessing.Process ):
@@ -139,7 +209,6 @@ class FancyClass(object):
     def do_something(self):
         proc_name = multiprocessing.current_process().name
         logger.info("Doing something fancy in %s for %s!", proc_name, self.name)
-
 
 class Consumer( multiprocessing.Process ):
     logger = logging.getLogger("Consumer")
@@ -174,8 +243,68 @@ class Task( object ):
     def __str__(self):
         return "%s * %s" % (self.a, self.b)
 
+class ActivePool( object ):
+    logger = logging.getLogger("ActivePool")
+    def __init__(self):
+        super( ActivePool, self ).__init__()
+        self.mgr = multiprocessing.Manager()
+        self.active = self.mgr.list()
+        self.lock = multiprocessing.Lock()
+    def makeActive(self, name ):
+        with self.lock:
+            self.active.append(name)
+    def makeInactive(self, name ):
+        with self.lock:
+            self.active.remove(name)
+    def __str__(self):
+        with self.lock:
+            return str( self.active )
 
+class SimpleMapReduce( object ):
+    logger = logging.getLogger("SimpleMapReduce")
+    def __init__( self, map_func, reduce_func, num_workers=None):
+        """
+        map_func
+        Function to map inputs to intermediate data.
+        Takes as argument one input value and returns a tuple with the key and a value to be reduced.
 
+        reduce_func
+        Function to reduce partitioned version of intermediate data to final output.
+        Takes as argument a key as produced by mp_func and a sequence of the values associated with that key
+
+        num_workers
+        The number of workers to create in the pool.
+        Defaults to the number of CPUs available on the current host.
+        """
+
+        self.map_func = map_func
+        self.reduce_func = reduce_func
+        self.pool = multiprocessing.Pool(num_workers)
+
+    def partition(self, mapped_values):
+        """Organize the mapped values by their key.
+        Returns an unsorted sequence of tuples with a key and sequence of values.
+        """
+        partitioned_data = collections.defaultdict( list )
+        for key, value in mapped_values:
+            partitioned_data[key].append(value)
+        return partitioned_data.items()
+
+    def __call__( self, inputs, chunksize=1):
+        """ Process the inputs through the map and reduce functions given.
+
+        inputs
+        An iterable containing the input data to be processed
+
+        chunksize
+        The portion of the input data to hand to each worker.
+        This can be used to turn performance during the mapping phase.
+        """
+        print inputs
+        map_responses = self.pool.map( self.map_func, inputs, chunksize=chunksize)
+        partitioned_data = self.partition( itertools.chain( *map_responses ) )
+        reduced_values = self.pool.map( self.reduce_func, partitioned_data )
+        return reduced_values
 
 ## Runtime Configuration
 if results.section in xrange( 0, len(chapter_sections) ):
@@ -445,26 +574,120 @@ if results.section in xrange( 0, len(chapter_sections) ):
         for c in s2_clients:
             c.start()
             time.sleep(1)
-        s1.start()
 
+        s1.start()
         s1.join()
+
         for c in s2_clients:
             c.join()
+
     if results.section == 14 or results.section == 0:
         logger = logging.getLogger("10.4.14 Controlling Concurrent Access to Resources")
-        #
+        # It may also be useful to allow more than one worker to access a resource at a time, while still limiting
+        # the overall number.  For example, a connection pool might support a fixed number of simultaneous connections,
+        # or a network application might support a fixed number of concurrent downloads.  A Semaphore is one way to
+        # manage those connections.
+        pool = ActivePool()
+        s = multiprocessing.Semaphore(3)
+        jobs = [ multiprocessing.Process( target=pool_worker, name="PW %d" % i, args=( s, pool, ) ) for i in xrange(10)]
+
+        for j in jobs:
+            j.start()
+        for j in jobs:
+            j.join()
+            logger.info("Now running: %s", str(pool))
+        # In this example, the ActivePool class simply serves as a convenient way to track which processes are running.
+        # a real resource pool would probably allocate a connection or some other value to the newly active processes
+        # and retrieve the value when the task is done.  Here the pool just holds the names of the active processes
+        # to show that only 3 are running concurrently
+
     if results.section == 15 or results.section == 0:
         logger = logging.getLogger("10.4.15 Managing Shared State")
-        #
+        # In the previous example, the list of active processes is maintained centrally in the ActivePool instance via
+        # a special type of list object created by a Manager.  The manager is responsible for coordinating shared
+        # information state between all of its users.
+        mgr = multiprocessing.Manager()
+        d = mgr.dict()
+        jobs = [ multiprocessing.Process( target=key_worker, args=(d, i, i*2)) for i in xrange(10) ]
+
+        for j in jobs:
+            j.start()
+        for j in jobs:
+            j.join()
+
+        # by creating the dict/list through the manager, it is shared and updates are seen in all processes.
+        logger.info("Results: %s", d)
+
+
     if results.section == 16 or results.section == 0:
         logger = logging.getLogger("10.4.16 Shared Namespaces")
-        #
+        # In addition to dictionaries and lists, Managers can create a shared Namespace.
+        mgr = multiprocessing.Manager()
+        namespace = mgr.Namespace()
+        namespace.my_list = []
+        event = multiprocessing.Event()
+
+        p = multiprocessing.Process( target=producer, args=(namespace, event))
+        c = multiprocessing.Process( target=consumer, args=(namespace, event))
+
+        c.start()
+        p.start()
+
+        c.join()
+        p.join()
+
+        # Any names value added to the Namespace is visible to all clients that received the Namespace instance.
+        # But updates to mutable values in the namespace are not propagated automatically.
+
     if results.section == 17 or results.section == 0:
         logger = logging.getLogger("10.4.17 Process Pools")
-        #
+        # The Pool class can be used to manage a fixed number of workers for simple cases, where the work to be done
+        # can be broken up and distributed between workers independently.  The return values from the jobs are collected
+        # and returned as a list.  the pool arguments include the number of processes
+        # and a function to run when starting the task process ( invoked once per child ).
+        inputs = list( xrange(100) )
+        logger.info("Inputs  : %s", inputs)
+
+        builtin_outputs = map( do_calculation, inputs )
+        logger.info("Built-In: %s", builtin_outputs)
+
+        pool_size = multiprocessing.cpu_count() * 2
+        # By default, Pool creates a fixed number of workers and passes jobs to them until there are no more jobs.
+        # Setting the maxtasksperchild parameter instructs the Pool to restart a worker after it has finished
+        # a number of tasks, preventing long-running workers form consuming ever more system resources.
+        pool = multiprocessing.Pool( processes=pool_size, initializer=start_process, maxtasksperchild=2 )
+        # Pool.map() functions the same way as map() except the functions run in parallel
+        pool_outputs = pool.map( do_calculation, inputs )
+        # Since they're running in parallel, close() and join() must be used to sync the main process and ensure
+        # proper cleanup.
+        pool.close() # no more tasks
+        pool.join()  # wrap up current tasks
+
+        logger.info("Pool   : %s", pool_outputs )
+
     if results.section == 18 or results.section == 0:
-        logger = logging.getLogger("10.4.18 Implmenting MapReduce")
-        #
+        logger = logging.getLogger("10.4.18 Implementing MapReduce")
+        # The Pool class can be used to create a simple sinlge-server MapReduce implementation.
+        # Although it does not give the full benefits of distributed processing, it does illustrate how easy it is
+        # to break down some problems into distributable units of work.
+        # In a MapReduce-based system, input data is broken down into chunks for processing by different worker
+        # instances.  Each chunk of input data is mapped to an intermediate state using a simple transformation.
+        # The intermediate data is then collected together and partitioned based on a key value so that all related
+        # values are together.  Finally the partitioned data is reduced to result set.
+        # The following example uses SimpleMapReduce to count the "words" in this project, ignoring some common bits
+        input_files = glob.glob('*.py')
+
+        mapper = SimpleMapReduce( file_to_words, count_words )
+        word_counts = mapper(input_files)
+        word_counts.sort( key=operator.itemgetter(1) )
+        word_counts.reverse()
+
+        logger.info('\nTOP 20 WORDS BY FREQUENCY\n')
+        top20 = word_counts[:20]
+        longest = max( len(word) for word, count in top20 )
+        for word, count in top20:
+            print '%-*s: %5s' % (longest+1, word, count)
+        print
 
 else:
     # If the command isn't recognized because it wasn't given, show the help.
